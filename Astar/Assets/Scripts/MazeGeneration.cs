@@ -10,10 +10,12 @@ public class MazeGeneration : MonoBehaviour
     public float desiredWallpercentage = 0.4f;
     private List<GameObject> allCellObjects = new List<GameObject>();
     public int seed = 1234;
+    public static MazeGeneration instance;
 
     // Start is called before the first frame update
     private void Awake()
     {
+        instance = this;
         Random.InitState(seed);
         GenerateMaze();
     }
@@ -187,6 +189,11 @@ public class MazeGeneration : MonoBehaviour
     public Cell GetCellForWorldPosition(Vector3 worldPos)
     {
         return grid[(int)(Mathf.RoundToInt(worldPos.x) / scaleFactor), (int)(Mathf.RoundToInt(worldPos.z) / scaleFactor)];
+    }
+
+    public Cell GetCellForVector2(Vector2 pos)
+    {
+        return grid[(int)(Mathf.RoundToInt(pos.x) / scaleFactor), (int)(Mathf.RoundToInt(pos.y) / scaleFactor)];
     }
 }
 

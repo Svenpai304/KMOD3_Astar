@@ -15,7 +15,48 @@ public class Astar
     /// <returns></returns>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
-        return null;
+        Queue<Cell> frontier = new Queue<Cell>();
+        Dictionary<Cell, Cell> came_from = new Dictionary<Cell, Cell>();
+
+        Cell startCell = MazeGeneration.instance.GetCellForVector2(startPos);
+        Cell endCell = MazeGeneration.instance.GetCellForVector2(endPos);
+        frontier.Enqueue(startCell);
+        came_from.Add(startCell, null);
+
+        while (frontier.Count > 0)
+        {
+            Cell current = frontier.Dequeue();
+            foreach (Cell neighbor in current.GetNeighbours(grid))
+            {
+                if(!came_from.ContainsKey(neighbor))
+                {
+                    came_from.Add(neighbor, current);
+                    frontier.Enqueue(neighbor);
+                }
+            }
+            if(current == endCell)
+            {
+                break;
+            }
+        }
+        if (!came_from.ContainsKey(endCell))
+        {
+            return null;
+        }
+
+        Cell backtrackCell = endCell;
+        Stack<Vector2Int> pathStack = new Stack<Vector2Int>();
+        List<Vector2Int> path = new List<Vector2Int>();
+        while(backtrackCell != startCell)
+        {
+            pathStack.Push(backtrackCell.gridPosition);
+            backtrackCell = came_from[backtrackCell];
+        }
+        while(pathStack.Count > 0)
+        {
+            path.Add(pathStack.Pop());
+        }
+        return path;
     }
 
     /// <summary>
@@ -26,7 +67,8 @@ public class Astar
         public Vector2Int position; //Position on the grid
         public Node parent; //Parent Node of this node
 
-        public float FScore { //GScore + HScore
+        public float FScore
+        { //GScore + HScore
             get { return GScore + HScore; }
         }
         public float GScore; //Current Travelled Distance
