@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using UnityEditor;
 
 public class Astar
 {
@@ -28,13 +29,14 @@ public class Astar
             Cell current = frontier.Dequeue();
             foreach (Cell neighbor in current.GetNeighbours(grid))
             {
-                if(!came_from.ContainsKey(neighbor))
+                Vector2 direction = neighbor.gridPosition - current.gridPosition;
+                if (!current.HasWall(GetWallFromVector2(direction)) && !came_from.ContainsKey(neighbor))
                 {
-                    came_from.Add(neighbor, current);
                     frontier.Enqueue(neighbor);
+                    came_from.Add(neighbor, current);
                 }
             }
-            if(current == endCell)
+            if (current == endCell)
             {
                 break;
             }
@@ -47,16 +49,36 @@ public class Astar
         Cell backtrackCell = endCell;
         Stack<Vector2Int> pathStack = new Stack<Vector2Int>();
         List<Vector2Int> path = new List<Vector2Int>();
-        while(backtrackCell != startCell)
+        while (backtrackCell != startCell)
         {
             pathStack.Push(backtrackCell.gridPosition);
             backtrackCell = came_from[backtrackCell];
         }
-        while(pathStack.Count > 0)
+        while (pathStack.Count > 0)
         {
             path.Add(pathStack.Pop());
         }
         return path;
+    }
+
+    public Wall GetWallFromVector2(Vector2 vector)
+    {
+        if (vector == Vector2.down)
+        {
+            return Wall.DOWN;
+        }
+        if (vector == Vector2.up)
+        {
+            return Wall.UP;
+        }
+        if (vector == Vector2.left)
+        {
+            return Wall.LEFT;
+        }
+        else
+        {
+            return Wall.RIGHT;
+        }
     }
 
     /// <summary>
