@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using UnityEditor;
+using Unity.IO.LowLevel.Unsafe;
 
 public class Astar
 {
     /// <summary>
-    /// TODO: Implement this function so that it returns a list of Vector2Int positions which describes a path from the startPos to the endPos
-    /// Note that you will probably need to add some helper functions
+    /// Returns a list of positions from startPos to endPos on the given grid using the A* algorithm.
     /// </summary>
     /// <param name="startPos"></param>
     /// <param name="endPos"></param>
@@ -16,39 +16,50 @@ public class Astar
     /// <returns></returns>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
-        Queue<Cell> frontier = new Queue<Cell>();
-        Dictionary<Cell, Cell> came_from = new Dictionary<Cell, Cell>();
+        Utils.PriorityQueue<Cell, int> frontier = new();
+        Dictionary<Cell, Cell> came_from = new();
+        Dictionary<Cell, int> cost = new();
 
         Cell startCell = MazeGeneration.instance.GetCellForVector2(startPos);
         Cell endCell = MazeGeneration.instance.GetCellForVector2(endPos);
-        frontier.Enqueue(startCell);
+        frontier.Enqueue(startCell, 0);
         came_from.Add(startCell, null);
+        cost.Add(startCell, 0);
 
         while (frontier.Count > 0)
         {
             Cell current = frontier.Dequeue();
+            if (current == endCell)
+            {
+                Debug.Log($"Cells evaluated: {came_from.Count}");
+                break;
+            }
             foreach (Cell neighbor in current.GetNeighbours(grid))
             {
                 Vector2 direction = neighbor.gridPosition - current.gridPosition;
-                if (!current.HasWall(GetWallFromVector2(direction)) && !came_from.ContainsKey(neighbor))
+                int neighborCost = cost[current] + 1;
+                if (!current.HasWall(GetWallFromVector2(direction)) && (!cost.ContainsKey(neighbor) || neighborCost < cost[neighbor]))
                 {
-                    frontier.Enqueue(neighbor);
-                    came_from.Add(neighbor, current);
+                    if (!cost.TryAdd(neighbor, neighborCost))
+                    {
+                        cost[neighbor] = neighborCost;
+                    }
+                    frontier.Enqueue(neighbor, neighborCost + Heuristic(endCell.gridPosition, neighbor.gridPosition));
+                    if (!came_from.TryAdd(neighbor, current))
+                    {
+                        came_from[neighbor] = current;
+                    }
                 }
-            }
-            if (current == endCell)
-            {
-                break;
             }
         }
         if (!came_from.ContainsKey(endCell))
         {
             return null;
         }
-
+        
         Cell backtrackCell = endCell;
-        Stack<Vector2Int> pathStack = new Stack<Vector2Int>();
-        List<Vector2Int> path = new List<Vector2Int>();
+        Stack<Vector2Int> pathStack = new();
+        List<Vector2Int> path = new();
         while (backtrackCell != startCell)
         {
             pathStack.Push(backtrackCell.gridPosition);
@@ -59,6 +70,11 @@ public class Astar
             path.Add(pathStack.Pop());
         }
         return path;
+    }
+
+    public int Heuristic(Vector2Int start, Vector2Int end)
+    {
+        return Mathf.Abs(start.x - end.x) + Mathf.Abs(start.y - end.y);
     }
 
     public Wall GetWallFromVector2(Vector2 vector)
